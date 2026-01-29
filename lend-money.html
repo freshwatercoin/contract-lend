@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>HỢP ĐỒNG CHO VAY</title>
+
+<style>
+@page {
+    size: A4;
+    margin: 2.5cm 2cm 2.5cm 3.5cm;
+}
+
+body {
+    font-family: "Times New Roman", serif;
+    font-size: 14px;
+    line-height: 1.5;
+    background: #f4f6f8;
+}
+
+.container {
+    max-width: 900px;
+    margin: auto;
+    background: white;
+    padding: 30px;
+}
+
+h1 { text-align: center; font-size: 18px; }
+h2, h3 { font-size: 14px; margin-top: 20px; }
+p { text-align: justify; }
+
+input, textarea {
+    width: 100%;
+    padding: 6px;
+    margin: 6px 0 12px;
+    font-family: inherit;
+}
+
+textarea { resize: vertical; }
+
+.signature {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 40px;
+}
+
+.sign-box {
+    width: 45%;
+    text-align: center;
+}
+
+canvas {
+    border: 1px solid #000;
+    width: 100%;
+    height: 150px;
+}
+
+button {
+    padding: 8px 14px;
+    margin: 5px;
+    cursor: pointer;
+}
+
+.actions { margin-top: 20px; }
+
+@media print {
+    .actions, .clear-btn {
+        display: none;
+    }
+}
+</style>
+</head>
+
+<body>
+<div class="container" id="contract">
+
+<h1>HỢP ĐỒNG CHO VAY</h1>
+
+<p><b>Mã hợp đồng:</b> <span id="contractCode"></span></p>
+<img id="qrCode" width="120">
+
+<p>Hôm nay, chúng tôi gồm có:</p>
+
+<h2>BÊN A (BÊN CHO VAY)</h2>
+<input id="a_name" placeholder="Họ và tên" required>
+<input id="a_address" placeholder="Địa chỉ" required>
+<input id="a_birth" placeholder="Năm sinh" required>
+<input id="a_phone" placeholder="Số điện thoại" required>
+
+<h2>BÊN B (BÊN VAY)</h2>
+<input id="b_name" placeholder="Họ và tên" required>
+<input id="b_address" placeholder="Địa chỉ" required>
+<input id="b_birth" placeholder="Năm sinh" required>
+<input id="b_phone" placeholder="Số điện thoại" required>
+
+<p>Sau khi bàn bạc, hai bên thống nhất ký hợp đồng với các điều khoản sau:</p>
+
+<h3>Điều 1: Số tiền, thời hạn và lãi suất cho vay</h3>
+<p>Số tiền cho vay: <b>10.000.000 VNĐ</b></p>
+<p>Thời gian cho vay: <b>3 tháng</b></p>
+
+<textarea id="purpose" placeholder="Mục đích vay tiền (bắt buộc)" required></textarea>
+<textarea id="disbursement" placeholder="Điều kiện và phương thức giải ngân (bắt buộc)" required></textarea>
+
+<p>Lãi suất: <b>5%/tháng</b></p>
+
+<h3>Điều 2</h3>
+<p>Bên A thực hiện theo cam kết.</p>
+
+<h3>Điều 3</h3>
+<p>
+Bên B thực hiện theo cam kết, nếu không trả lãi đúng hạn (4.000.000 VNĐ/tháng)
+sẽ chịu lãi nợ 5% tổng số nợ.
+</p>
+
+<h3>Điều 4</h3>
+<p>Tranh chấp được giải quyết bằng thương lượng, nếu không được thì đưa ra Toà án.</p>
+
+<h3>Điều 5</h3>
+<p>Hợp đồng có hiệu lực từ ngày ký và lập thành 02 bản có giá trị pháp lý ngang nhau.</p>
+
+<div class="signature">
+    <div class="sign-box">
+        <b>ĐẠI DIỆN BÊN A</b><br>
+        <canvas id="signA"></canvas><br>
+        <button class="clear-btn" onclick="clearSign('signA')">Xoá chữ ký</button>
+        <div id="nameA"></div>
+    </div>
+
+    <div class="sign-box">
+        <b>ĐẠI DIỆN BÊN B</b><br>
+        <canvas id="signB"></canvas><br>
+        <button class="clear-btn" onclick="clearSign('signB')">Xoá chữ ký</button>
+        <div id="nameB"></div>
+    </div>
+</div>
+
+<div class="actions">
+    <label>
+        <input type="checkbox" id="agree">
+        Tôi đồng ý toàn bộ điều khoản trong hợp đồng
+    </label><br><br>
+
+    <button onclick="exportWord()">Xuất Word</button>
+    <button onclick="exportPDF()">Xuất PDF</button>
+</div>
+
+</div>
+
+<script>
+/* ====== MÃ HỢP ĐỒNG + QR ====== */
+const code = "HDV-" + new Date().toISOString().slice(0,10).replace(/-/g,"") +
+             "-" + Math.floor(1000 + Math.random()*9000);
+document.getElementById("contractCode").innerText = code;
+
+function updateQR() {
+    const text = `Ma HD: ${code}
+Ben A: ${a_name.value}
+Ben B: ${b_name.value}`;
+    document.getElementById("qrCode").src =
+        "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" +
+        encodeURIComponent(text);
+}
+updateQR();
+
+/* ====== CHỮ KÝ ====== */
+function initCanvas(id) {
+    const canvas = document.getElementById(id);
+    const ctx = canvas.getContext("2d");
+    let drawing = false;
+
+    canvas.addEventListener("mousedown", () => drawing = true);
+    canvas.addEventListener("mouseup", () => drawing = false);
+    canvas.addEventListener("mouseout", () => drawing = false);
+
+    canvas.addEventListener("mousemove", e => {
+        if (!drawing) return;
+        const r = canvas.getBoundingClientRect();
+        ctx.lineWidth = 2;
+        ctx.lineTo(e.clientX - r.left, e.clientY - r.top);
+        ctx.stroke();
+    });
+}
+initCanvas("signA");
+initCanvas("signB");
+
+function clearSign(id) {
+    const c = document.getElementById(id);
+    c.getContext("2d").clearRect(0,0,c.width,c.height);
+}
+
+/* ====== XUẤT FILE ====== */
+function validate() {
+    const req = document.querySelectorAll("input[required], textarea[required]");
+    for (let i of req) if (!i.value.trim()) return alert("Điền đủ thông tin"), false;
+    if (!agree.checked) return alert("Chưa đồng ý điều khoản"), false;
+    return true;
+}
+
+function fillNames() {
+    nameA.innerText = a_name.value;
+    nameB.innerText = b_name.value;
+    updateQR();
+}
+
+function exportWord() {
+    if (!validate()) return;
+    fillNames();
+    const html = "<html><meta charset='utf-8'><body>" +
+        document.getElementById("contract").innerHTML +
+        "</body></html>";
+    const blob = new Blob([html], {type:"application/msword"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "Hop_Dong_Cho_Vay.doc";
+    a.click();
+}
+
+function exportPDF() {
+    if (!validate()) return;
+    fillNames();
+    window.print();
+}
+</script>
+
+</body>
+</html>
